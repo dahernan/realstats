@@ -1,0 +1,73 @@
+<html>
+<body>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
+<script src="http://localhost:8080/socket.io/socket.io.js"></script>
+<script type="text/javascript">
+
+function setCookie(name,value,days) {
+	if (days) {
+		var date = new Date();
+		date.setTime(date.getTime()+(days*24*60*60*1000));
+		var expires = "; expires="+date.toGMTString();
+	}
+	else var expires = "";
+	document.cookie = name+"="+value+expires+"; path=/";
+}
+
+function getCookie(name) {
+	var nameEQ = name + "=";
+	var ca = document.cookie.split(';');
+	for(var i=0;i < ca.length;i++) {
+		var c = ca[i];
+		while (c.charAt(0)==' ') c = c.substring(1,c.length);
+		if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+	}
+	return null;
+}
+
+function eraseCookie(name) {
+	createCookie(name,"",-1);
+}
+
+
+</script>
+
+
+<div>
+<p>Testing Socket IO</p>
+
+<p id="status">Unknow</p>
+</div>
+
+<button id="b1">Sendddd</button>
+
+<script>
+
+
+var socket = io.connect('http://localhost:8080');
+setCookie("_test", "blabla");
+
+socket.on('connect', function(){ 
+	socket.emit('new_client' , {nav: navigator.userAgent, url: document.URL});
+	$("#status").html("Connected!! :)");
+});
+
+
+socket.on('disconnect', function(){ 
+	$("#status").html("Disconnected :()");
+	socket.emit('destroy_client' , {goodbye: 'goodbye'});
+	
+})
+
+$('#b1').bind('click', function() {
+	socket.emit('new_client' , {nav: navigator.userAgent, url: document.URL});
+});
+ 
+ 
+</script>
+
+
+    
+</body>
+</html>
+

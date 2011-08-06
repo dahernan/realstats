@@ -1,0 +1,60 @@
+<html>
+<head>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
+<script src="http://localhost:8082/socket.io/socket.io.js"></script>
+<script type="text/javascript" src="d3.js"></script>
+<script type="text/javascript" src="d3.chart.js"></script>
+<link type="text/css" rel="stylesheet" href="bullet.css"/>
+</head>
+<body>
+
+
+<div>
+<p>Testing Stats</p>
+
+<p id="status">Unknow</p>
+</div>
+
+<p id="users">No idea Users</p>
+
+ <div id="chart">
+      <button class="first last" onclick="transition()">
+        Update
+      </button><p>
+    </div>
+
+
+<script>
+
+var socket = io.connect('http://localhost:8082');
+var usersCount = 0;
+
+socket.on('connect', function(){ 
+	socket.emit('start' , {url: "127.0.0.1"});
+	$("#status").html("Connected!! :)");
+});
+
+
+socket.on('disconnect', function(){ 
+	$("#status").html("Disconnected :()");	
+})
+
+socket.on('update', function(data){
+	console.log("updated value " + data);
+	$("#users").html(data.count);
+	usersCount = data.count;
+	transition();
+})
+
+
+ 
+ 
+</script>
+
+ <script type="text/javascript" src="bullet.js"></script>
+ 
+
+    
+</body>
+</html>
+
