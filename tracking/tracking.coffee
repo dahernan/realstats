@@ -3,26 +3,13 @@ util = require("util")
 redis = require("redis")
 trackutils = require("../trackutils/trackutils.js")
 io = require('socket.io').listen(8080)
-
+counters = require('../counters/counters.js')
 r = redis.createClient()
 
 r.on("error", (err) ->
 	console.log("Error #{err}")
 )
 
-
-clear_counters = (r) ->
-	r.keys("counter:*", (err, keys) ->
-		for key in keys
-			do (key) ->
-				console.log("Clearing counter: #{key}")
-				r.del(key)			
-	)
-	
-increment_pcounter = (r, url, incr ) ->
-	r.hincrby("counter:#{url}", url, incr, (e, counter_value) ->
-		r.publish("channel:counter:#{url}" , counter_value)
-	)
 
 store_handshake = (r, socket) ->
 	r.hset(socket.id, "time", socket.handshake.time)
@@ -34,7 +21,7 @@ store_handshake = (r, socket) ->
 	r.hset(socket.id, "handshake_host", socket.handshake.headers["host"])
 
 
-clear_counters(r)
+counters.clear_counters(r)
 
 io.sockets.on('connection', (socket) ->
 	console.log("new client with id " + util.inspect(socket.handshake, true, null))
@@ -43,7 +30,8 @@ io.sockets.on('connection', (socket) ->
 	socket.on('new_client', (data) -> 
 		console.log("navigator data: #{data.url}")
 		uri = trackutils.parseUri(data.url)
-		increment_pcounter(r, uri.host, 1)		
+		counter = new counters.Counter(r, uri.host)
+		counter.incr(1)
 		r.hincrby("counter:" + uri.host, uri.host + uri.path, 1) if uri.path? and uri.path != "/"
 		r.hset(socket.id, "host", uri.host)
 		r.hset(socket.id, "path", uri.path)    
@@ -57,7 +45,8 @@ io.sockets.on('connection', (socket) ->
 		console.log("user disconnected buuuuuuu #{socket.id}")
 		r.hget(socket.id, "host", (err, host) ->
 			console.log(host)
-			increment_pcounter(r, host, -1)			
+			counter = new counters.Counter(r, host)
+			counter.incr(-1)						
 			r.hget(socket.id, "path", (err, path) ->
 				r.hincrby("counter:#{host}", host + path, -1);	
 			)		    

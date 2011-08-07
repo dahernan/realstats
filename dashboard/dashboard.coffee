@@ -1,6 +1,8 @@
 
 util = require("util")
 redis = require("redis")
+counters = require('../counters/counters.js')
+
 r = redis.createClient()
 
 io = require('socket.io').listen(8082)
@@ -12,28 +14,33 @@ r.on("error", handleRedisError)
 
 
 io.sockets.on('connection', (socket) ->
+	# TODO: decide if reuse the same conection or create new for each
 	sub = redis.createClient()
 	sub.on("error", handleRedisError)
-	url = null
+	
+	counter = null
 	socket.on('start', (data) ->
-		url = data.url	
-		console.log("new client connected #{socket.id} #{data}")	  
-		r.hget("counter:#{data.url}", "#{data.url}", (e, value) ->
-			socket.emit("update" , {count: value})  
+		console.log("new client connected #{socket.id} #{data}")
+		url = data.url # TODO get from store 
+		counter = new counters.Counter(r, url)
+		counter.subscribe(sub)		
+		counter.on("counter_change", (count) ->
+			console.log("counter_change!!!!! #{count}")
+			socket.emit("update", {count: count})
 		)
-		sub.subscribe("channel:counter:#{data.url}")
+		counter.count()
+		
 	)
   
 	socket.on('disconnect', ->
 		console.log("client disconnected #{socket.id}")
-		sub.unsubscribe("channel:counter:#{url}")
+		counter.unsubscribe()
+		sub.quit()
 	)
+	
+	
    
-	sub.on('message', (channel, message) ->
-		console.log("new redis msg #{channel} #{message}")
-		if channel is "channel:counter:#{url}"
-			socket.emit("update", {channel: channel, count: message})	  
-	)
+	
 
 )
 
