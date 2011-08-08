@@ -27,7 +27,7 @@
 <script>
 
 var socket = io.connect('http://localhost:8082');
-var usersCount = 0;
+var counters = [0,6];
 
 socket.on('connect', function(){ 
 	socket.emit('start' , {url: "localhost"});
@@ -42,7 +42,7 @@ socket.on('disconnect', function(){
 socket.on('update', function(data){
 	console.log("updated value " + data);
 	$("#users").html(data.count);
-	usersCount = data.count;
+	counters[0] = data.count;
 	transition();
 })
 

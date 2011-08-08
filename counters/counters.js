@@ -25,31 +25,54 @@
   };
   exports.Counter = (function() {
     __extends(Counter, EventEmitter);
-    function Counter(redis, url, path) {
+    function Counter(redis, counter_name, url, path) {
       this.redis = redis;
+      this.counter_name = counter_name;
       this.url = url;
       this.path = path != null ? path : "/";
       this.subcallback = __bind(this.subcallback, this);
-      this.name = "counter:" + url;
-      this.channel = "channel:" + this.name;
+      this.global_key = "counter:" + this.url;
+      this.counter_key = "" + this.counter_name + ":" + this.url + this.path;
+      this.channel = "channel:" + this.global_key + ":" + this.counter_key;
       this.emit("newCounter", this.url);
       this.sub = null;
     }
+    Counter.prototype.pincr = function(value) {
+      return this.redis.hincrby(this.global_key, this.counter_key, value, __bind(function(e, count) {
+        this.redis.publish(this.channel, count);
+        return this.emit("counter_incr", {
+          global_key: this.global_key,
+          counter_key: this.counter_key,
+          count: count
+        });
+      }, this));
+    };
     Counter.prototype.incr = function(value) {
-      return this.redis.hincrby(this.name, this.url, value, __bind(function(e, counter_value) {
-        this.redis.publish(this.channel, counter_value);
-        return this.emit("counter_incr", counter_value);
+      return this.redis.hincrby(this.global_key, this.counter_key, value, __bind(function(e, count) {
+        return this.emit("counter_incr", {
+          global_key: this.global_key,
+          counter_key: this.counter_key,
+          count: count
+        });
       }, this));
     };
     Counter.prototype.count = function() {
-      return this.redis.hget(this.name, this.url, __bind(function(e, value) {
-        return this.emit("counter_change", value);
+      return this.redis.hget(this.global_key, this.counter_key, __bind(function(e, count) {
+        return this.emit("counter_change", {
+          global_key: this.global_key,
+          counter_key: this.counter_key,
+          count: count
+        });
       }, this));
     };
-    Counter.prototype.subcallback = function(channel, value) {
-      console.log("new sub message " + channel + " " + value + " " + this.channel);
+    Counter.prototype.subcallback = function(channel, count) {
+      console.log("new sub message " + channel + " " + this.channel);
       if (channel === this.channel) {
-        return this.emit("counter_change", value);
+        return this.emit("counter_change", {
+          global_key: this.global_key,
+          counter_key: this.counter_key,
+          count: count
+        });
       }
     };
     Counter.prototype.subscribe = function(sub) {

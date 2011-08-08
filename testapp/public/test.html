@@ -55,7 +55,7 @@ socket.on('connect', function(){
 
 socket.on('disconnect', function(){ 
 	$("#status").html("Disconnected :()");
-	socket.emit('destroy_client' , {goodbye: 'goodbye'});
+	socket.emit('destroy_client' , {goodbye: 'goodbye', url: document.URL});
 	
 })
 

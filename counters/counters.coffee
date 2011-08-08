@@ -10,26 +10,30 @@ exports.clear_counters = (r) ->
 	)
 
 class exports.Counter extends EventEmitter
-	constructor: (@redis, @url, @path="/") ->
-		@name = "counter:#{url}"
-		@channel = "channel:#{@name}"
+	constructor: (@redis, @counter_name, @url, @path="/") ->
+		@global_key = "counter:#{@url}"
+		@counter_key = "#{@counter_name}:#{@url}#{@path}"
+		@channel = "channel:#{@global_key}:#{@counter_key}"
 		@emit("newCounter", @url)
 		@sub = null
 		
-	
+	pincr: (value) ->
+		@redis.hincrby(@global_key, @counter_key, value, (e, count) =>
+			@redis.publish(@channel , count)
+			@emit("counter_incr", {global_key: @global_key, counter_key: @counter_key,  count: count})
+		)
 	incr: (value) ->
-		@redis.hincrby(@name, @url, value, (e, counter_value) =>
-			@redis.publish(@channel , counter_value)
-			@emit("counter_incr", counter_value)
+		@redis.hincrby(@global_key, @counter_key, value, (e, count) =>
+			@emit("counter_incr", {global_key: @global_key, counter_key: @counter_key,  count: count})
 		)
 	count: () ->
-		@redis.hget(@name, @url, (e, value) =>
-			@emit("counter_change", value)
+		@redis.hget(@global_key, @counter_key, (e, count) =>
+			@emit("counter_change", {global_key: @global_key, counter_key: @counter_key,  count: count})
 		)
 	
-	subcallback: (channel, value) =>
-		console.log("new sub message #{channel} #{value} #{@channel}")		
-		@emit("counter_change", value) if channel is @channel
+	subcallback: (channel, count) =>
+		console.log("new sub message #{channel} #{@channel}")		
+		@emit("counter_change", {global_key: @global_key, counter_key: @counter_key,  count: count}) if channel is @channel
 		
 	subscribe: (sub) ->
 		@sub = sub

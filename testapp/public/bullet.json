@@ -1,4 +1,5 @@
 [
-  {"title":"Users","subtitle":"Page Views","ranges":[0,10],"measures":[0,11],"markers":[0]}
+  {"id": "counter1", "title":"Total","subtitle":"Page Views","ranges":[0,10],"measures":[0,11],"markers":[0]},
+  {"id": "counter2", "title":"Page","subtitle":"Page Views","ranges":[0,20],"measures":[0,21],"markers":[5]}
   
 ]

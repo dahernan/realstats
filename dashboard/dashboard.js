@@ -18,12 +18,12 @@
       var url;
       console.log("new client connected " + socket.id + " " + data);
       url = data.url;
-      counter = new counters.Counter(r, url);
+      counter = new counters.Counter(r, "views_live", url);
       counter.subscribe(sub);
-      counter.on("counter_change", function(count) {
-        console.log("counter_change!!!!! " + count);
+      counter.on("counter_change", function(change) {
+        console.log("counter_change!   " + change.global_key + "  " + change.counter_key + " " + change.count);
         return socket.emit("update", {
-          count: count
+          count: change.count
         });
       });
       return counter.count();

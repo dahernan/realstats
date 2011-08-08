@@ -22,11 +22,11 @@ io.sockets.on('connection', (socket) ->
 	socket.on('start', (data) ->
 		console.log("new client connected #{socket.id} #{data}")
 		url = data.url # TODO get from store 
-		counter = new counters.Counter(r, url)
+		counter = new counters.Counter(r,"views_live", url)
 		counter.subscribe(sub)		
-		counter.on("counter_change", (count) ->
-			console.log("counter_change!!!!! #{count}")
-			socket.emit("update", {count: count})
+		counter.on("counter_change", (change) ->
+			console.log("counter_change!   #{change.global_key}  #{change.counter_key} #{change.count}")
+			socket.emit("update", {count: change.count})
 		)
 		counter.count()
 		

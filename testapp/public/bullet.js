@@ -14,6 +14,7 @@ d3.json("bullet.json", function(data) {
       .attr("class", "bullet")
       .attr("width", w)
       .attr("height", h)
+      .attr("id", function(d) { return d.id; })
     .append("svg:g")
       .attr("transform", "translate(" + m[3] + "," + m[0] + ")")
       .call(chart);
@@ -31,31 +32,33 @@ d3.json("bullet.json", function(data) {
       .attr("dy", "1em")
       .text(function(d) { return d.subtitle; });
 
-  chart.duration(700);
+  chart.duration(500);
   window.transition = function() {
     vis.map(updateBullets).call(chart);
   };
+  window.transition2 = function() {
+	  d3.select("#counter2").map(updateBullets).call(chart);
+  };
 });
 
-function updateBullets(d) {
-  if (!d.randomizer) d.randomizer = randomizer(d);
-  if (!d.maximum) d.maximum = maximum(d);
+function updateBullets(d, i) {
+  if (!d.measures_update) d.measures_update = measures_update(d, i);
+  if (!d.maximum) d.maximum = maximum(d, i);
 
   //d.ranges = d.ranges.map(d.randomizer);
   d.markers = d.markers.map(d.maximum);
-  d.measures = d.measures.map(d.randomizer);
+  d.measures = d.measures.map(d.measures_update);
   return d;
 }
 
-function maximum(d) {	
-	return function(d) {
-	    return Math.max(d,usersCount );
+function maximum(d, i) {
+	return function(d, j) {
+	    return Math.max(d,counters[i] );
 	  };
 }
 
-
-function randomizer(d) {
-  return function(d) {
-    return Math.max(0,usersCount );
+function measures_update(d, i) {
+  return function(d, j) {
+    return Math.max(0,counters[i] );
   };
 }
