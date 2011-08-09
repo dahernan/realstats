@@ -10,13 +10,25 @@
   };
   EventEmitter = require('events').EventEmitter;
   exports.clear_counters = function(r) {
-    return r.keys("counter:*", function(err, keys) {
+    r.keys("counter:*", function(err, keys) {
       var key, _i, _len, _results;
       _results = [];
       for (_i = 0, _len = keys.length; _i < _len; _i++) {
         key = keys[_i];
         _results.push((function(key) {
           console.log("Clearing counter: " + key);
+          return r.del(key);
+        })(key));
+      }
+      return _results;
+    });
+    return r.keys("hit:*", function(err, keys) {
+      var key, _i, _len, _results;
+      _results = [];
+      for (_i = 0, _len = keys.length; _i < _len; _i++) {
+        key = keys[_i];
+        _results.push((function(key) {
+          console.log("Clearing hit: " + key);
           return r.del(key);
         })(key));
       }
@@ -36,6 +48,9 @@
       this.channel = "channel:" + this.global_key + ":" + this.counter_key;
       this.emit("newCounter", this.url);
       this.sub = null;
+      if (!(url != null)) {
+        console.log("ERROR: url null creating a counter !!!!");
+      }
     }
     Counter.prototype.pincr = function(value) {
       return this.redis.hincrby(this.global_key, this.counter_key, value, __bind(function(e, count) {

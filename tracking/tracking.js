@@ -1,9 +1,10 @@
 (function() {
-  var counters, io, r, redis, store_handshake, trackutils, util;
+  var connect, counters, io, r, redis, server, sio, store_handshake, trackutils, util;
   util = require("util");
   redis = require("redis");
   trackutils = require("../trackutils/trackutils.js");
-  io = require('socket.io').listen(8080);
+  connect = require("connect");
+  sio = require('socket.io');
   counters = require('../counters/counters.js');
   r = redis.createClient();
   r.on("error", function(err) {
@@ -21,22 +22,22 @@
     return r.hset(hit, "handshake_host", socket.handshake.headers["host"]);
   };
   counters.clear_counters(r);
+  server = connect(connect.static(__dirname + '/public'), function(req, resp) {});
+  server.listen(8080);
+  io = sio.listen(server);
   io.sockets.on('connection', function(socket) {
     console.log("new client with id " + util.inspect(socket.handshake, true, null));
     store_handshake(r, socket);
     socket.on('new_client', function(data) {
       var pviews_live, uri, views_live;
       uri = trackutils.parseUri(data.url);
-      console.log("navigator data: " + data.url);
+      console.log("navigator data: " + data.url + " referrer " + data.referrer);
       r.hset("hit:" + socket.id, "host", uri.host);
       r.hset("hit:" + socket.id, "path", uri.path);
       views_live = new counters.Counter(r, "views_live", uri.host);
       views_live.pincr(1);
       pviews_live = new counters.Counter(r, "pviews_live", uri.host, uri.path);
       return pviews_live.incr(1);
-    });
-    socket.on('destroy_client', function(data) {
-      return console.log(data);
     });
     return socket.on('disconnect', function() {
       var hit;

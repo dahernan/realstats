@@ -2,7 +2,8 @@
 util = require("util")
 redis = require("redis")
 trackutils = require("../trackutils/trackutils.js")
-io = require('socket.io').listen(8080)
+connect = require("connect")
+sio = require('socket.io')
 counters = require('../counters/counters.js')
 r = redis.createClient()
 
@@ -24,13 +25,19 @@ store_handshake = (r, socket) ->
 
 counters.clear_counters(r)
 
+server = connect(connect.static(__dirname + '/public'), (req, resp) ->	
+) 
+
+server.listen(8080)
+io = sio.listen(server)
+
 io.sockets.on('connection', (socket) ->
 	console.log("new client with id " + util.inspect(socket.handshake, true, null))
 	store_handshake(r,socket)
     
 	socket.on('new_client', (data) -> 
 		uri = trackutils.parseUri(data.url)
-		console.log("navigator data: #{data.url}")
+		console.log("navigator data: #{data.url} referrer #{data.referrer}")
 		r.hset("hit:#{socket.id}", "host", uri.host)
 		r.hset("hit:#{socket.id}", "path", uri.path)		
 		views_live = new counters.Counter(r, "views_live",uri.host)
@@ -39,10 +46,6 @@ io.sockets.on('connection', (socket) ->
 		pviews_live.incr(1)
 		
 		    
-	)
-	
-	socket.on('destroy_client', (data) ->
-		console.log(data)
 	)
 
 	socket.on('disconnect', -> 

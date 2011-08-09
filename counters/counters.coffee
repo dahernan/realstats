@@ -8,6 +8,12 @@ exports.clear_counters = (r) ->
 				console.log("Clearing counter: #{key}")
 				r.del(key)			
 	)
+	r.keys("hit:*", (err, keys) ->
+		for key in keys
+			do (key) ->
+				console.log("Clearing hit: #{key}")
+				r.del(key)			
+	)
 
 class exports.Counter extends EventEmitter
 	constructor: (@redis, @counter_name, @url, @path="/") ->
@@ -16,6 +22,8 @@ class exports.Counter extends EventEmitter
 		@channel = "channel:#{@global_key}:#{@counter_key}"
 		@emit("newCounter", @url)
 		@sub = null
+		if not url?
+			console.log("ERROR: url null creating a counter !!!!")
 		
 	pincr: (value) ->
 		@redis.hincrby(@global_key, @counter_key, value, (e, count) =>
