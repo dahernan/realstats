@@ -1,8 +1,9 @@
 (function() {
-  var connect, counters, io, r, redis, server, sio, store_handshake, trackutils, util;
+  var connect, counters, io, r, redis, server, session, sio, store_handshake, trackutils, util;
   util = require("util");
   redis = require("redis");
   trackutils = require("../trackutils/trackutils.js");
+  session = require("./session/session.js");
   connect = require("connect");
   sio = require('socket.io');
   counters = require('../counters/counters.js');
@@ -26,8 +27,19 @@
   server.listen(8080);
   io = sio.listen(server);
   io.sockets.on('connection', function(socket) {
+    var suid, usession;
     console.log("new client with id " + util.inspect(socket.handshake, true, null));
     store_handshake(r, socket);
+    suid = trackutils.getCookie("_usid", socket.handshake.headers["cookie"]);
+    console.log("new user with id " + suid);
+    usession = new session.UserSession(r, suid);
+    usession.on("new_usid", function(data) {
+      console.log("EVENT new_usid " + data.usid);
+      return socket.emit("new_usid", {
+        usid: data.usid
+      });
+    });
+    usession.value();
     socket.on('new_client', function(data) {
       var pviews_live, uri, views_live;
       uri = trackutils.parseUri(data.url);
@@ -41,7 +53,7 @@
     });
     return socket.on('disconnect', function() {
       var hit;
-      console.log("user disconnected buuuuuuu " + socket.id);
+      console.log("user disconnected buuuuuu " + socket.id);
       hit = "hit:" + socket.id;
       return r.hget(hit, "host", function(err, host) {
         var views_live;

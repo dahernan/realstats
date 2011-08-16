@@ -2,6 +2,7 @@
 util = require("util")
 redis = require("redis")
 trackutils = require("../trackutils/trackutils.js")
+session = require("./session/session.js")
 connect = require("connect")
 sio = require('socket.io')
 counters = require('../counters/counters.js')
@@ -34,7 +35,17 @@ io = sio.listen(server)
 io.sockets.on('connection', (socket) ->
 	console.log("new client with id " + util.inspect(socket.handshake, true, null))
 	store_handshake(r,socket)
-    
+	suid = trackutils.getCookie("_usid",socket.handshake.headers["cookie"])
+	console.log("new user with id #{suid}")
+	usession = new session.UserSession(r, suid)
+	
+	usession.on("new_usid", (data) ->
+			console.log("EVENT new_usid #{data.usid}")
+			socket.emit("new_usid", {usid: data.usid})
+	)
+	
+	usession.value()
+			    
 	socket.on('new_client', (data) -> 
 		uri = trackutils.parseUri(data.url)
 		console.log("navigator data: #{data.url} referrer #{data.referrer}")
@@ -45,11 +56,12 @@ io.sockets.on('connection', (socket) ->
 		pviews_live = new counters.Counter(r, "pviews_live",uri.host, uri.path)
 		pviews_live.incr(1)
 		
+		
 		    
 	)
 
 	socket.on('disconnect', -> 
-		console.log("user disconnected buuuuuuu #{socket.id}")
+		console.log("user disconnected buuuuuu #{socket.id}")
 		hit = "hit:#{socket.id}"						
 		r.hget(hit, "host", (err, host) ->
 			views_live = new counters.Counter(r, "views_live", host)
@@ -62,6 +74,8 @@ io.sockets.on('connection', (socket) ->
 			)	
 		)
 	)
+	
+	
 )
 
 
