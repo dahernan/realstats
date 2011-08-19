@@ -18,23 +18,32 @@ io.sockets.on('connection', (socket) ->
 	sub = redis.createClient()
 	sub.on("error", handleRedisError)
 	
-	counter = null
+	views_live = null
+	users_live = null
 	socket.on('start', (data) ->
 		console.log("new client connected #{socket.id} #{data}")
 		url = data.url # TODO get from store 
-		counter = new counters.Counter(r,"views_live", url)
-		counter.subscribe(sub)		
-		counter.on("counter_change", (change) ->
+		views_live = new counters.Counter(r,"views_live", url)
+		users_live = new counters.Counter(r,"users_live", url)
+		views_live.subscribe(sub)
+		users_live.subscribe(sub)
+		views_live.on("counter_change", (change) ->
 			console.log("counter_change!   #{change.global_key}  #{change.counter_key} #{change.count}")
 			socket.emit("update", {count: change.count})
 		)
-		counter.count()
+		users_live.on("counter_change", (change) ->
+			console.log("counter_change!   #{change.global_key}  #{change.counter_key} #{change.count}")
+			socket.emit("update", {count: change.count})
+		)
+		views_live.count()
+		users_live.count()
 		
 	)
   
 	socket.on('disconnect', ->
 		console.log("client disconnected #{socket.id}")
-		counter.unsubscribe()
+		views_live.unsubscribe()
+		users_live.unsubscribe()
 		sub.quit()
 	)
 	

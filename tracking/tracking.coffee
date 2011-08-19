@@ -12,6 +12,7 @@ r.on("error", (err) ->
 	console.log("Error #{err}")
 )
 
+r.debug_mode = true;
 
 store_handshake = (r, socket) ->
 	hit = "hit:#{socket.id}"
@@ -25,6 +26,7 @@ store_handshake = (r, socket) ->
 
 
 counters.clear_counters(r)
+session.clear_session(r)
 
 server = connect(connect.static(__dirname + '/public'), (req, resp) ->	
 ) 
@@ -33,25 +35,45 @@ server.listen(8080)
 io = sio.listen(server)
 
 io.sockets.on('connection', (socket) ->
-	console.log("new client with id " + util.inspect(socket.handshake, true, null))
+	#console.log("new client with id " + util.inspect(socket.handshake, true, null))
 	store_handshake(r,socket)
 	suid = trackutils.getCookie("_usid",socket.handshake.headers["cookie"])
 	console.log("new user with id #{suid}")
 	usession = new session.UserSession(r, suid)
 	
 	usession.on("new_usid", (data) ->
-			console.log("EVENT new_usid #{data.usid}")
 			socket.emit("new_usid", {usid: data.usid})
 	)
 	
+	usession.on("hit" , (data) ->
+		console.log("usession:hit #{data.usid} #{data.url}")
+	)
+	
+	usession.on("leave" , (data) ->
+		console.log("usession:leave #{data.usid} #{data.url}")
+	)
+	
+	usession.on("session_start" , (data) ->		
+		console.log("session_start #{data.usid} #{data.url}")
+		users_live = new counters.Counter(r, "users_live", data.url)		
+		users_live.pincr(1)
+	)
+		
+	usession.on("session_end" , (data) ->
+		console.log("session_end #{data.usid} #{data.url}")
+		users_live = new counters.Counter(r, "users_live", data.url)		
+		users_live.pincr(-1)
+	)
+
 	usession.value()
 			    
 	socket.on('new_client', (data) -> 
 		uri = trackutils.parseUri(data.url)
 		console.log("navigator data: #{data.url} referrer #{data.referrer}")
 		r.hset("hit:#{socket.id}", "host", uri.host)
-		r.hset("hit:#{socket.id}", "path", uri.path)		
-		views_live = new counters.Counter(r, "views_live",uri.host)
+		r.hset("hit:#{socket.id}", "path", uri.path)
+		usession.hit(uri.host)		
+		views_live = new counters.Counter(r, "views_live",uri.host)		
 		views_live.pincr(1)
 		pviews_live = new counters.Counter(r, "pviews_live",uri.host, uri.path)
 		pviews_live.incr(1)
@@ -66,6 +88,7 @@ io.sockets.on('connection', (socket) ->
 		r.hget(hit, "host", (err, host) ->
 			views_live = new counters.Counter(r, "views_live", host)
 			views_live.pincr(-1)
+			usession.leave(host)
 			r.hget(hit, "path", (e, path) ->
 				console.log("=======   #{host}#{path}")
 				pviews_live = new counters.Counter(r, "pviews_live",host, path)

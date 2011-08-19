@@ -10,27 +10,38 @@
   };
   r.on("error", handleRedisError);
   io.sockets.on('connection', function(socket) {
-    var counter, sub;
+    var sub, users_live, views_live;
     sub = redis.createClient();
     sub.on("error", handleRedisError);
-    counter = null;
+    views_live = null;
+    users_live = null;
     socket.on('start', function(data) {
       var url;
       console.log("new client connected " + socket.id + " " + data);
       url = data.url;
-      counter = new counters.Counter(r, "views_live", url);
-      counter.subscribe(sub);
-      counter.on("counter_change", function(change) {
+      views_live = new counters.Counter(r, "views_live", url);
+      users_live = new counters.Counter(r, "users_live", url);
+      views_live.subscribe(sub);
+      users_live.subscribe(sub);
+      views_live.on("counter_change", function(change) {
         console.log("counter_change!   " + change.global_key + "  " + change.counter_key + " " + change.count);
         return socket.emit("update", {
           count: change.count
         });
       });
-      return counter.count();
+      users_live.on("counter_change", function(change) {
+        console.log("counter_change!   " + change.global_key + "  " + change.counter_key + " " + change.count);
+        return socket.emit("update", {
+          count: change.count
+        });
+      });
+      views_live.count();
+      return users_live.count();
     });
     return socket.on('disconnect', function() {
       console.log("client disconnected " + socket.id);
-      counter.unsubscribe();
+      views_live.unsubscribe();
+      users_live.unsubscribe();
       return sub.quit();
     });
   });

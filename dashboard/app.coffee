@@ -43,27 +43,37 @@ r.on("error", handleRedisError)
 io = sio.listen(app)
 
 io.sockets.on('connection', (socket) ->
-	# TODO: decide if reuse the same conection or create new for each
+	# TODO: decide if reuse the same conection or create new for each 
 	sub = redis.createClient()
 	sub.on("error", handleRedisError)
 	
-	counter = null
+	views_live = null
+	users_live = null
+	
 	socket.on('start', (data) ->
 		console.log("new client connected #{socket.id} #{data}")
 		url = data.url # TODO get from store 
-		counter = new counters.Counter(r,"views_live", url)
-		counter.subscribe(sub)		
-		counter.on("counter_change", (change) ->
+		views_live = new counters.Counter(r,"views_live", url)
+		users_live = new counters.Counter(r,"users_live", url)
+		
+		views_live.subscribe(sub)
+		users_live.subscribe(sub)
+		
+		counter_change = (change) =>
 			console.log("counter_change!   #{change.global_key}  #{change.counter_key} #{change.count}")
-			socket.emit("update", {count: change.count})
-		)
-		counter.count()
+			socket.emit("update", {counter: change.counter_key, count: change.count})
+						
+		views_live.on("counter_change", counter_change)
+		users_live.on("counter_change", counter_change)
+		views_live.count()
+		users_live.count()
 		
 	)
   
 	socket.on('disconnect', ->
 		console.log("client disconnected #{socket.id}")
-		counter.unsubscribe()
+		views_live.unsubscribe() if views_live?
+		users_live.unsubscribe() if users_live?
 		sub.quit()
 	)
 	

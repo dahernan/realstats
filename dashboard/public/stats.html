@@ -40,9 +40,12 @@ socket.on('disconnect', function(){
 })
 
 socket.on('update', function(data){
-	console.log("updated value " + data);
+	console.log("updated counter "+ data.counter + " count "+ data.count);
 	$("#users").html(data.count);
-	counters[0] = data.count;
+	if (data.counter == "users_live:localhost/")
+		counters[0] = data.count;
+	if (data.counter == "views_live:localhost/")
+		counters[1] = data.count;
 	transition();
 })
 

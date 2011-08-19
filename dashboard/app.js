@@ -1,5 +1,6 @@
 (function() {
   var app, counters, express, handleRedisError, io, r, redis, sio, util;
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   util = require("util");
   redis = require("redis");
   counters = require('../counters/counters.js');
@@ -37,27 +38,39 @@
   r.on("error", handleRedisError);
   io = sio.listen(app);
   io.sockets.on('connection', function(socket) {
-    var counter, sub;
+    var sub, users_live, views_live;
     sub = redis.createClient();
     sub.on("error", handleRedisError);
-    counter = null;
+    views_live = null;
+    users_live = null;
     socket.on('start', function(data) {
-      var url;
+      var counter_change, url;
       console.log("new client connected " + socket.id + " " + data);
       url = data.url;
-      counter = new counters.Counter(r, "views_live", url);
-      counter.subscribe(sub);
-      counter.on("counter_change", function(change) {
+      views_live = new counters.Counter(r, "views_live", url);
+      users_live = new counters.Counter(r, "users_live", url);
+      views_live.subscribe(sub);
+      users_live.subscribe(sub);
+      counter_change = __bind(function(change) {
         console.log("counter_change!   " + change.global_key + "  " + change.counter_key + " " + change.count);
         return socket.emit("update", {
+          counter: change.counter_key,
           count: change.count
         });
-      });
-      return counter.count();
+      }, this);
+      views_live.on("counter_change", counter_change);
+      users_live.on("counter_change", counter_change);
+      views_live.count();
+      return users_live.count();
     });
     return socket.on('disconnect', function() {
       console.log("client disconnected " + socket.id);
-      counter.unsubscribe();
+      if (views_live != null) {
+        views_live.unsubscribe();
+      }
+      if (users_live != null) {
+        users_live.unsubscribe();
+      }
       return sub.quit();
     });
   });
