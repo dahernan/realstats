@@ -25,12 +25,12 @@ class exports.Counter extends EventEmitter
 		if not url?
 			console.log("ERROR: url null creating a counter !!!!")
 		
-	pincr: (value) ->
+	pincr: (value = 1) ->
 		@redis.hincrby(@global_key, @counter_key, value, (e, count) =>
 			@redis.publish(@channel , count)
 			@emit("counter_incr", {global_key: @global_key, counter_key: @counter_key,  count: count})
 		)
-	incr: (value) ->
+	incr: (value = 1) ->
 		@redis.hincrby(@global_key, @counter_key, value, (e, count) =>
 			@emit("counter_incr", {global_key: @global_key, counter_key: @counter_key,  count: count})
 		)
@@ -53,4 +53,7 @@ class exports.Counter extends EventEmitter
 		@sub.unsubscribe(@channel)
 		@sub.removeListener('message', @subcallback)
 		@sub = null
+	
+	clear: (cb = null) ->
+		@redis.hdel(@global_key, @counter_key, cb)
 

@@ -53,6 +53,9 @@
       }
     }
     Counter.prototype.pincr = function(value) {
+      if (value == null) {
+        value = 1;
+      }
       return this.redis.hincrby(this.global_key, this.counter_key, value, __bind(function(e, count) {
         this.redis.publish(this.channel, count);
         return this.emit("counter_incr", {
@@ -63,6 +66,9 @@
       }, this));
     };
     Counter.prototype.incr = function(value) {
+      if (value == null) {
+        value = 1;
+      }
       return this.redis.hincrby(this.global_key, this.counter_key, value, __bind(function(e, count) {
         return this.emit("counter_incr", {
           global_key: this.global_key,
@@ -99,6 +105,12 @@
       this.sub.unsubscribe(this.channel);
       this.sub.removeListener('message', this.subcallback);
       return this.sub = null;
+    };
+    Counter.prototype.clear = function(cb) {
+      if (cb == null) {
+        cb = null;
+      }
+      return this.redis.hdel(this.global_key, this.counter_key, cb);
     };
     return Counter;
   })();
