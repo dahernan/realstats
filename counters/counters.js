@@ -112,6 +112,9 @@
       }
       return this.redis.hdel(this.global_key, this.counter_key, cb);
     };
+    Counter.prototype.toString = function() {
+      return "global_key= " + this.global_key + " counter_key= " + this.counter_key + " channel= " + this.channel;
+    };
     return Counter;
   })();
 }).call(this);

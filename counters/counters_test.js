@@ -1,5 +1,5 @@
 (function() {
-  var assert, counters, r, redis, sub, util, vows;
+  var assert, counters, i, r, redis, sub, util, vows;
   vows = require('vows');
   util = require("util");
   assert = require('assert');
@@ -7,30 +7,64 @@
   counters = require("./counters.js");
   r = redis.createClient();
   sub = redis.createClient();
-  counters.clear_counters(r);
+  i = 0;
   vows.describe("Counters Test").addBatch({
-    'Create a new counter': {
+    'Testing counters': {
       topic: function() {
         return new counters.Counter(r, "testcounter_live", "www.dahernantest.net");
       },
       'is an object': function(counter) {
         return assert.instanceOf(counter, counters.Counter);
       },
-      'increment a counter': {
+      'it can be reset to 0': {
         topic: function(counter) {
-          counter.on("counter_incr", this.callback);
-          counter.incr(1);
+          counter.clear(this.callback);
         },
-        'should emit the event counter_incr': function(data, err) {
-          if (err) {
-            console.log(util.inspect(err));
+        'increment a counter': {
+          topic: function(err, counter) {
+            if (err) {
+              console.log(util.inspect(err));
+            }
+            counter.on("counter_incr", this.callback);
+            counter.incr(1);
+          },
+          'should emit the event counter_incr': function(data, err) {
+            if (err) {
+              console.log(util.inspect(err));
+            }
+            assert.equal(data.count, 1);
+            assert.equal(data.global_key, "counter:www.dahernantest.net");
+            return assert.equal(data.counter_key, "testcounter_live:www.dahernantest.net/");
           }
-          if (data) {
-            console.log("Response: " + data);
+        },
+        'get a counter value': {
+          topic: function(err, counter) {
+            counter.on("counter_change", this.callback);
+            counter.count();
+          },
+          'should emit the counter value': function(data, err) {
+            if (err) {
+              console.log(util.inspect(err));
+            }
+            assert.isTrue(data.count >= 1);
+            assert.equal(data.global_key, "counter:www.dahernantest.net");
+            return assert.equal(data.counter_key, "testcounter_live:www.dahernantest.net/");
           }
-          assert.equal(data.count, 1);
-          assert.equal(data.global_key, "counter:www.dahernantest.net");
-          return assert.equal(data.counter_key, "testcounter_live:www.dahernantest.net/");
+        },
+        'suscribe to a counter and publish increment': {
+          topic: function(err, counter) {
+            counter.on("counter_change", this.callback);
+            counter.subscribe(sub);
+            counter.pincr();
+          },
+          'should emit the counter value': function(data, err) {
+            if (err) {
+              console.log(util.inspect(err));
+            }
+            assert.equal(data.global_key, "counter:www.dahernantest.net");
+            assert.equal(data.counter_key, "testcounter_live:www.dahernantest.net/");
+            return assert.isTrue(data.count >= 1);
+          }
         }
       }
     }

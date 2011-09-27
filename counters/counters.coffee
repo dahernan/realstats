@@ -56,4 +56,7 @@ class exports.Counter extends EventEmitter
 	
 	clear: (cb = null) ->
 		@redis.hdel(@global_key, @counter_key, cb)
+	
+	toString: () ->
+		"global_key= #{@global_key} counter_key= #{@counter_key} channel= #{@channel}"
 
