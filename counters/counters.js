@@ -56,44 +56,49 @@
       if (value == null) {
         value = 1;
       }
-      return this.redis.hincrby(this.global_key, this.counter_key, value, __bind(function(e, count) {
-        this.redis.publish(this.channel, count);
-        return this.emit("counter_incr", {
-          global_key: this.global_key,
-          counter_key: this.counter_key,
-          count: count
-        });
+      return this.redis.hincrby(this.global_key, this.counter_key, value, __bind(function(e, count_value) {
+        this.redis.publish(this.channel, count_value);
+        return this.emit("counter_incr", this.toJson(count_value));
       }, this));
     };
     Counter.prototype.incr = function(value) {
       if (value == null) {
         value = 1;
       }
-      return this.redis.hincrby(this.global_key, this.counter_key, value, __bind(function(e, count) {
-        return this.emit("counter_incr", {
-          global_key: this.global_key,
-          counter_key: this.counter_key,
-          count: count
-        });
+      return this.redis.hincrby(this.global_key, this.counter_key, value, __bind(function(e, count_value) {
+        return this.emit("counter_incr", this.toJson(count_value));
+      }, this));
+    };
+    Counter.prototype.set = function(count_value) {
+      if (count_value == null) {
+        count_value = 0;
+      }
+      return this.redis.hset(this.global_key, this.counter_key, count_value, __bind(function(e, res) {
+        if (res >= 0) {
+          return this.emit("counter_change", this.toJson(count_value));
+        }
+      }, this));
+    };
+    Counter.prototype.pset = function(count_value) {
+      if (count_value == null) {
+        count_value = 0;
+      }
+      return this.redis.hset(this.global_key, this.counter_key, count_value, __bind(function(e, res) {
+        if (res >= 0) {
+          this.redis.publish(this.channel, count_value);
+          return this.emit("counter_change", this.toJson(count_value));
+        }
       }, this));
     };
     Counter.prototype.count = function() {
-      return this.redis.hget(this.global_key, this.counter_key, __bind(function(e, count) {
-        return this.emit("counter_change", {
-          global_key: this.global_key,
-          counter_key: this.counter_key,
-          count: count
-        });
+      return this.redis.hget(this.global_key, this.counter_key, __bind(function(e, count_value) {
+        return this.emit("counter_change", this.toJson(count_value));
       }, this));
     };
-    Counter.prototype.subcallback = function(channel, count) {
-      console.log("new sub message " + channel + " " + this.channel);
+    Counter.prototype.subcallback = function(channel, count_value) {
+      console.log("new sub message " + channel + " " + this.channel + " counter: " + count_value);
       if (channel === this.channel) {
-        return this.emit("counter_change", {
-          global_key: this.global_key,
-          counter_key: this.counter_key,
-          count: count
-        });
+        return this.emit("counter_change", this.toJson(count_value));
       }
     };
     Counter.prototype.subscribe = function(sub) {
@@ -115,6 +120,31 @@
     Counter.prototype.toString = function() {
       return "global_key= " + this.global_key + " counter_key= " + this.counter_key + " channel= " + this.channel;
     };
+    Counter.prototype.toJson = function(count_value) {
+      return {
+        global_key: this.global_key,
+        counter_key: this.counter_key,
+        count: count_value
+      };
+    };
     return Counter;
+  })();
+  exports.SetCounter = (function() {
+    __extends(SetCounter, EventEmitter);
+    function SetCounter() {
+      this.emitSetincr = __bind(this.emitSetincr, this);
+      SetCounter.__super__.constructor.apply(this, arguments);
+    }
+    SetCounter.prototype.incrSet = function(id) {
+      return this.redis.sadd("set:" + counter_key, id, __bind(function(e, res) {
+        if (res > 0) {
+          return this.redis.scard("set:" + counter_key, e, this.emitSetincr);
+        }
+      }, this));
+    };
+    SetCounter.prototype.emitSetincr = function(err, count) {
+      return this.emit("counter_change", this.toJson(count));
+    };
+    return SetCounter;
   })();
 }).call(this);

@@ -26,22 +26,33 @@ class exports.Counter extends EventEmitter
 			console.log("ERROR: url null creating a counter !!!!")
 		
 	pincr: (value = 1) ->
-		@redis.hincrby(@global_key, @counter_key, value, (e, count) =>
-			@redis.publish(@channel , count)
-			@emit("counter_incr", {global_key: @global_key, counter_key: @counter_key,  count: count})
+		@redis.hincrby(@global_key, @counter_key, value, (e, count_value) =>
+			@redis.publish(@channel , count_value)
+			@emit("counter_incr", @toJson(count_value))
 		)
 	incr: (value = 1) ->
-		@redis.hincrby(@global_key, @counter_key, value, (e, count) =>
-			@emit("counter_incr", {global_key: @global_key, counter_key: @counter_key,  count: count})
+		@redis.hincrby(@global_key, @counter_key, value, (e, count_value) =>
+			@emit("counter_incr", @toJson(count_value))
+		)
+	set: (count_value = 0) ->
+		@redis.hset(@global_key, @counter_key, count_value, (e, res) =>
+			if res >= 0
+				@emit("counter_change", @toJson(count_value))
+		)
+	pset: (count_value = 0) ->
+		@redis.hset(@global_key, @counter_key, count_value, (e, res) =>
+			if res >= 0
+				@redis.publish(@channel , count_value)		
+				@emit("counter_change", @toJson(count_value))
 		)
 	count: () ->
-		@redis.hget(@global_key, @counter_key, (e, count) =>
-			@emit("counter_change", {global_key: @global_key, counter_key: @counter_key,  count: count})
+		@redis.hget(@global_key, @counter_key, (e, count_value) =>
+			@emit("counter_change", @toJson(count_value))
 		)
 	
-	subcallback: (channel, count) =>
-		console.log("new sub message #{channel} #{@channel}")		
-		@emit("counter_change", {global_key: @global_key, counter_key: @counter_key,  count: count}) if channel is @channel
+	subcallback: (channel, count_value) =>
+		console.log("new sub message #{channel} #{@channel} counter: #{count_value}")		
+		@emit("counter_change", @toJson(count_value)) if channel is @channel
 		
 	subscribe: (sub) ->
 		@sub = sub
@@ -59,4 +70,19 @@ class exports.Counter extends EventEmitter
 	
 	toString: () ->
 		"global_key= #{@global_key} counter_key= #{@counter_key} channel= #{@channel}"
+	
+	toJson: (count_value) ->
+		{global_key: @global_key, counter_key: @counter_key,  count: count_value}
+		
+
+class exports.SetCounter extends EventEmitter
+	incrSet: (id) ->
+		@redis.sadd("set:#{counter_key}", id, (e, res) =>
+			if(res > 0)
+				@redis.scard("set:#{counter_key}", e, @emitSetincr)
+				
+		)
+	emitSetincr: (err, count) =>
+		@emit("counter_change", @toJson(count))
+		
 
