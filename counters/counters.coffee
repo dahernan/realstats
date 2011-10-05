@@ -76,13 +76,24 @@ class exports.Counter extends EventEmitter
 		
 
 class exports.SetCounter extends EventEmitter
-	incrSet: (id) ->
-		@redis.sadd("set:#{counter_key}", id, (e, res) =>
+	incr: (id) ->
+		@redis.sadd("setcounter:#{counter_key}", id, (e, res) =>
 			if(res > 0)
-				@redis.scard("set:#{counter_key}", e, @emitSetincr)
+				@redis.scard("setcounter:#{counter_key}", e, @emitSetincr)
 				
+		)
+	pincr: (id) ->
+		@redis.sadd("setcounter:#{counter_key}", id, (e, res) =>
+			if(res > 0)
+				@redis.scard("setcounter:#{counter_key}", e, @emitSetincrAndPublish)
 		)
 	emitSetincr: (err, count) =>
 		@emit("counter_change", @toJson(count))
+	
+	emitSetincrAndPublish: (err, count) =>
+		@emit("counter_change", @toJson(count))
+		@redis.publish(@channel , count_value)			
+		
+		
 		
 

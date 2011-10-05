@@ -132,18 +132,30 @@
   exports.SetCounter = (function() {
     __extends(SetCounter, EventEmitter);
     function SetCounter() {
+      this.emitSetincrAndPublish = __bind(this.emitSetincrAndPublish, this);
       this.emitSetincr = __bind(this.emitSetincr, this);
       SetCounter.__super__.constructor.apply(this, arguments);
     }
-    SetCounter.prototype.incrSet = function(id) {
-      return this.redis.sadd("set:" + counter_key, id, __bind(function(e, res) {
+    SetCounter.prototype.incr = function(id) {
+      return this.redis.sadd("setcounter:" + counter_key, id, __bind(function(e, res) {
         if (res > 0) {
-          return this.redis.scard("set:" + counter_key, e, this.emitSetincr);
+          return this.redis.scard("setcounter:" + counter_key, e, this.emitSetincr);
+        }
+      }, this));
+    };
+    SetCounter.prototype.pincr = function(id) {
+      return this.redis.sadd("setcounter:" + counter_key, id, __bind(function(e, res) {
+        if (res > 0) {
+          return this.redis.scard("setcounter:" + counter_key, e, this.emitSetincrAndPublish);
         }
       }, this));
     };
     SetCounter.prototype.emitSetincr = function(err, count) {
       return this.emit("counter_change", this.toJson(count));
+    };
+    SetCounter.prototype.emitSetincrAndPublish = function(err, count) {
+      this.emit("counter_change", this.toJson(count));
+      return this.redis.publish(this.channel, count_value);
     };
     return SetCounter;
   })();
