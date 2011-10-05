@@ -16,8 +16,11 @@ Node.js modules:
 * connect
 
 
-Dashboard - Is the dashboard to see, the users and pageviews
-Tracking - Are the tracking scripts using websockets
-Testapp - A Web Application with the tracking script for testing
+Source:
+
+* Dashboard - Is the dashboard to see, the users and pageviews
+* Tracking - Are the tracking scripts using websockets
+* Testapp - A Web Application with the tracking script for testing
+
 
 Node.js code is written in [CoffeeScript](http://jashkenas.github.com/coffee-script/)
