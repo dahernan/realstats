@@ -25,11 +25,11 @@ Source:
 
 Node.js code is written in [CoffeeScript](http://jashkenas.github.com/coffee-script/)
 
-##Demo
+## Demo
 
 You can try the prototype!!
 
-The Dashboard to see the Users (http://176.34.253.73:8082/stats.html)
-The Web Applicion with the tracking code,  (http://176.34.253.73:8081/test.html)
+* The **Dashboard** to see the Users (http://176.34.253.73:8082/stats.html) 
+* The **Web Applicion** with the tracking code, (http://176.34.253.73:8081/test.html)
 
-Just navigate and see the dashboard at the same time
+**Just navigate and see the dashboard at the same time**
