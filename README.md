@@ -27,7 +27,7 @@ Node.js code is written in [CoffeeScript](http://jashkenas.github.com/coffee-scr
 
 ## Demo
 
-You can try the prototype!!
+You can try the prototype (but right me an email first, I share the server)
 
 * The **Dashboard** to see the Users (http://176.34.253.73:8082/stats.html) 
 * The **Web Applicion** with the tracking code, (http://176.34.253.73:8081/test.html)
